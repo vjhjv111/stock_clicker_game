@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#101827" />
+  <title>벼락부자 주식단타단</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">2026 미니게임 메이커스 챌린지</p>
+        <h1>벼락부자 주식단타단</h1>
+      </div>
+      <div class="header-actions">
+        <button id="soundBtn" class="ghost-btn" type="button">🔊 소리 켬</button>
+        <button id="helpBtn" class="ghost-btn" type="button">게임 방법</button>
+      </div>
+    </header>
+
+    <section class="status-grid">
+      <article class="status-card">
+        <span>보유 현금</span>
+        <strong id="cashText">0원</strong>
+      </article>
+      <article class="status-card">
+        <span>주식 평가금</span>
+        <strong id="stockValueText">0원</strong>
+      </article>
+      <article class="status-card">
+        <span>총 자산</span>
+        <strong id="netWorthText">0원</strong>
+      </article>
+      <article class="status-card timer-card">
+        <span>남은 시간</span>
+        <strong id="timerText">03:00</strong>
+      </article>
+    </section>
+
+    <main class="game-grid">
+      <section class="panel clicker-panel">
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">안전하지만 느린 성장</p>
+            <h2>노동 소득</h2>
+          </div>
+          <span class="pill" id="incomeRateText">초당 0원</span>
+        </div>
+
+        <div class="click-zone">
+          <button id="workBtn" class="work-btn" type="button" aria-label="클릭해서 돈 벌기">
+            <span class="work-icon">💼</span>
+            <strong>일해서 돈 벌기</strong>
+            <small id="clickIncomeText">클릭당 +100원</small>
+          </button>
+          <div id="floatingTextLayer" class="floating-text-layer"></div>
+        </div>
+
+        <div class="combo-box">
+          <span>집중 콤보</span>
+          <div class="combo-track"><div id="comboBar" class="combo-fill"></div></div>
+          <strong id="comboText">x1.00</strong>
+        </div>
+
+        <div class="upgrade-header">
+          <h3>자동화 업그레이드</h3>
+          <span>구매할수록 비용 증가</span>
+        </div>
+        <div id="upgradeList" class="upgrade-list"></div>
+      </section>
+
+      <section class="panel market-panel">
+        <div class="panel-heading market-heading">
+          <div>
+            <p class="eyebrow">빠르지만 위험한 성장</p>
+            <h2>가상 주식 시장</h2>
+          </div>
+          <div class="market-clock">
+            <span>시장 상태</span>
+            <strong id="marketMoodText">평온</strong>
+          </div>
+        </div>
+
+        <div id="tickerTabs" class="ticker-tabs"></div>
+
+        <div class="chart-card">
+          <div class="chart-top">
+            <div>
+              <span id="selectedTickerName">종목</span>
+              <strong id="selectedTickerPrice">0원</strong>
+            </div>
+            <div id="selectedTickerChange" class="price-change">0.00%</div>
+          </div>
+          <canvas id="priceChart" width="900" height="360"></canvas>
+        </div>
+
+        <div class="trade-grid">
+          <div class="position-card">
+            <div>
+              <span>보유 수량</span>
+              <strong id="holdingQtyText">0주</strong>
+            </div>
+            <div>
+              <span>평균 매수가</span>
+              <strong id="avgPriceText">0원</strong>
+            </div>
+            <div>
+              <span>평가 손익</span>
+              <strong id="unrealizedText">0원</strong>
+            </div>
+          </div>
+
+          <div class="trade-controls">
+            <label>
+              주문 수량
+              <input id="tradeQtyInput" type="number" min="1" value="1" inputmode="numeric" />
+            </label>
+            <div class="quick-qty">
+              <button type="button" data-qty="1">1주</button>
+              <button type="button" data-qty="5">5주</button>
+              <button type="button" data-qty="10">10주</button>
+              <button type="button" id="maxQtyBtn">최대</button>
+            </div>
+            <div class="trade-buttons">
+              <button id="buyBtn" class="buy-btn" type="button">매수</button>
+              <button id="sellBtn" class="sell-btn" type="button">매도</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="auto-trade-card">
+          <div class="auto-title">
+            <div>
+              <h3>자동 손절·익절</h3>
+              <p>보유 종목이 설정 수익률에 도달하면 전량 매도합니다.</p>
+            </div>
+            <label class="switch">
+              <input id="autoTradeToggle" type="checkbox" />
+              <span></span>
+            </label>
+          </div>
+          <div class="auto-fields">
+            <label>손절률<input id="stopLossInput" type="number" value="-8" step="1" /></label>
+            <label>익절률<input id="takeProfitInput" type="number" value="12" step="1" /></label>
+          </div>
+        </div>
+      </section>
+
+      <aside class="panel news-panel">
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">속보를 읽고 대응하라</p>
+            <h2>시장 뉴스</h2>
+          </div>
+          <span class="pill danger" id="newsCountdown">다음 뉴스 12초</span>
+        </div>
+        <div id="newsFeed" class="news-feed"></div>
+
+        <div class="mission-card">
+          <h3>이번 판 목표</h3>
+          <p id="missionText">총 자산 300,000원을 달성하세요.</p>
+          <div class="mission-track"><div id="missionBar" class="mission-fill"></div></div>
+        </div>
+
+        <div class="stats-card">
+          <h3>플레이 기록</h3>
+          <div><span>실현 손익</span><strong id="realizedPnlText">0원</strong></div>
+          <div><span>총 클릭 수</span><strong id="clickCountText">0회</strong></div>
+          <div><span>뉴스 대응</span><strong id="newsCountText">0건</strong></div>
+          <div><span>최고 자산</span><strong id="bestWorthText">0원</strong></div>
+        </div>
+      </aside>
+    </main>
+  </div>
+
+  <div id="toastContainer" class="toast-container" aria-live="polite"></div>
+
+  <div id="modalBackdrop" class="modal-backdrop hidden">
+    <section id="helpModal" class="modal hidden" role="dialog" aria-modal="true">
+      <button class="modal-close" data-close-modal type="button">×</button>
+      <h2>게임 방법</h2>
+      <ol>
+        <li><b>일해서 돈 벌기</b> 버튼을 눌러 시드머니를 모으세요.</li>
+        <li>업그레이드를 구매하면 자동으로 돈을 벌거나 클릭 수익이 증가합니다.</li>
+        <li>가상 종목을 매수하고 뉴스와 차트를 보며 적절한 순간에 매도하세요.</li>
+        <li>3분 안에 최대한 많은 총 자산을 만드는 것이 목표입니다.</li>
+      </ol>
+      <p class="notice">모든 종목과 재화는 게임용 가상 데이터이며 실제 투자와 무관합니다.</p>
+      <button class="primary-wide" data-close-modal type="button">시작하기</button>
+    </section>
+
+    <section id="resultModal" class="modal result-modal hidden" role="dialog" aria-modal="true">
+      <p class="eyebrow">장 마감</p>
+      <h2 id="resultTitle">오늘도 살아남았습니다</h2>
+      <div class="result-score">
+        <span>최종 총 자산</span>
+        <strong id="resultWorthText">0원</strong>
+      </div>
+      <div id="resultBreakdown" class="result-breakdown"></div>
+      <button id="restartBtn" class="primary-wide" type="button">다시 도전</button>
+    </section>
+  </div>
+
+  <script src="game.js"></script>
+</body>
+</html>
