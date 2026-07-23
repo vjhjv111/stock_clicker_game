@@ -15,6 +15,7 @@
         <h1>벼락부자 주식단타단</h1>
       </div>
       <div class="header-actions">
+        <button id="portfolioBtn" class="ghost-btn portfolio-btn" type="button">📊 내 보유주식 <span id="portfolioBadge">0</span></button>
         <button id="soundBtn" class="ghost-btn" type="button">🔊 소리 켬</button>
         <button id="helpBtn" class="ghost-btn" type="button">게임 방법</button>
       </div>
@@ -189,6 +190,31 @@
       </ol>
       <p class="notice">모든 종목과 재화는 게임용 가상 데이터이며 실제 투자와 무관합니다.</p>
       <button class="primary-wide" data-close-modal type="button">시작하기</button>
+    </section>
+
+
+    <section id="portfolioModal" class="modal portfolio-modal hidden" role="dialog" aria-modal="true">
+      <button class="modal-close" data-close-portfolio type="button">×</button>
+      <div class="portfolio-modal-heading">
+        <div>
+          <p class="eyebrow">MY PORTFOLIO</p>
+          <h2>내 보유주식</h2>
+        </div>
+        <div class="portfolio-total">
+          <span>전체 평가 손익</span>
+          <strong id="portfolioTotalPnl">0원</strong>
+        </div>
+      </div>
+
+      <div class="portfolio-summary">
+        <div><span>총 매입금</span><strong id="portfolioInvestedText">0원</strong></div>
+        <div><span>총 평가금</span><strong id="portfolioValueText">0원</strong></div>
+        <div><span>보유 종목</span><strong id="portfolioCountText">0종목</strong></div>
+      </div>
+
+      <div id="portfolioList" class="portfolio-list"></div>
+      <p id="portfolioEmpty" class="portfolio-empty">현재 보유 중인 주식이 없습니다.</p>
+      <button class="primary-wide" data-close-portfolio type="button">닫기</button>
     </section>
 
     <section id="resultModal" class="modal result-modal hidden" role="dialog" aria-modal="true">
