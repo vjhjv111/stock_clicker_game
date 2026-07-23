@@ -4,7 +4,8 @@
   const GAME_DURATION = 180;
   const TARGET_WORTH = 300000;
   const NEWS_INTERVAL = 12;
-  const TICK_MS = 650;
+  const TICK_MS = 2500;
+  const MAX_TICK_CHANGE = 0.30; // 1회 변동 상한가 +30%, 하한가 -30%
 
   const tickers = [
     { id: "ramen", name: "우주라면", icon: "🍜", price: 6200, volatility: 0.035, drift: 0.0007, unlock: 0 },
@@ -77,7 +78,10 @@
     newsCount: $("newsCountText"), bestWorth: $("bestWorthText"), toast: $("toastContainer"),
     backdrop: $("modalBackdrop"), helpModal: $("helpModal"), resultModal: $("resultModal"),
     helpBtn: $("helpBtn"), restart: $("restartBtn"), resultTitle: $("resultTitle"),
-    resultWorth: $("resultWorthText"), resultBreakdown: $("resultBreakdown"), soundBtn: $("soundBtn")
+    resultWorth: $("resultWorthText"), resultBreakdown: $("resultBreakdown"), soundBtn: $("soundBtn"),
+    portfolioBtn: $("portfolioBtn"), portfolioBadge: $("portfolioBadge"), portfolioModal: $("portfolioModal"),
+    portfolioList: $("portfolioList"), portfolioEmpty: $("portfolioEmpty"), portfolioTotalPnl: $("portfolioTotalPnl"),
+    portfolioInvested: $("portfolioInvestedText"), portfolioValue: $("portfolioValueText"), portfolioCount: $("portfolioCountText")
   };
   const ctx = els.canvas.getContext("2d");
 
@@ -209,6 +213,89 @@
     ctx.strokeStyle = lineColor; ctx.lineWidth = 3; ctx.stroke();
   }
 
+
+  function renderPortfolio() {
+    const positions = tickers
+      .map(t => {
+        const h = state.holdings[t.id];
+        const price = state.market[t.id].price;
+        const invested = h.qty * h.avg;
+        const value = h.qty * price;
+        const pnl = value - invested;
+        const rate = invested > 0 ? pnl / invested * 100 : 0;
+        return { t, h, price, invested, value, pnl, rate };
+      })
+      .filter(p => p.h.qty > 0);
+
+    const totalInvested = positions.reduce((sum, p) => sum + p.invested, 0);
+    const totalValue = positions.reduce((sum, p) => sum + p.value, 0);
+    const totalPnl = totalValue - totalInvested;
+
+    els.portfolioBadge.textContent = positions.length;
+    els.portfolioInvested.textContent = money(totalInvested);
+    els.portfolioValue.textContent = money(totalValue);
+    els.portfolioCount.textContent = `${positions.length}종목`;
+    els.portfolioTotalPnl.textContent = money(totalPnl);
+    els.portfolioTotalPnl.className = totalPnl >= 0 ? "positive" : "negative";
+
+    els.portfolioList.innerHTML = "";
+    els.portfolioEmpty.classList.toggle("hidden", positions.length > 0);
+
+    positions.forEach(({ t, h, price, value, pnl, rate }) => {
+      const row = document.createElement("article");
+      row.className = "portfolio-row";
+      row.innerHTML = `
+        <div class="portfolio-name">
+          <strong>${t.icon} ${t.name}</strong>
+          <small>${h.qty.toLocaleString()}주 보유</small>
+        </div>
+        <div class="portfolio-cell">
+          <span>평균 매수가</span>
+          <strong>${money(h.avg)}</strong>
+        </div>
+        <div class="portfolio-cell">
+          <span>현재가</span>
+          <strong>${money(price)}</strong>
+        </div>
+        <div class="portfolio-cell">
+          <span>평가금</span>
+          <strong>${money(value)}</strong>
+        </div>
+        <div class="portfolio-cell">
+          <span>평가 손익</span>
+          <strong class="${pnl >= 0 ? "positive" : "negative"}">${money(pnl)}<br>${rate >= 0 ? "+" : ""}${rate.toFixed(2)}%</strong>
+        </div>
+        <div class="portfolio-actions">
+          <button class="portfolio-select" type="button">차트 보기</button>
+          <button class="portfolio-sell" type="button">전량 매도</button>
+        </div>`;
+
+      row.querySelector(".portfolio-select").addEventListener("click", () => {
+        state.selected = t.id;
+        closePortfolio();
+        renderAll();
+      });
+      row.querySelector(".portfolio-sell").addEventListener("click", () => {
+        sellTicker(t.id, h.qty);
+        renderPortfolio();
+      });
+      els.portfolioList.appendChild(row);
+    });
+  }
+
+  function showPortfolio() {
+    renderPortfolio();
+    els.backdrop.classList.remove("hidden");
+    els.helpModal.classList.add("hidden");
+    els.resultModal.classList.add("hidden");
+    els.portfolioModal.classList.remove("hidden");
+  }
+
+  function closePortfolio() {
+    els.portfolioModal.classList.add("hidden");
+    els.backdrop.classList.add("hidden");
+  }
+
   function renderAll() {
     const stockValue = totalStockValue();
     const worth = state.cash + stockValue;
@@ -252,6 +339,7 @@
     els.sell.disabled = !state.running || holding.qty <= 0;
     renderUpgrades();
     renderTickers();
+    renderPortfolio();
     drawChart();
   }
 
@@ -333,7 +421,9 @@
       const random = (Math.random() - .5) * 2 * t.volatility;
       const meanRevert = (m.open - m.price) / m.open * .012;
       const event = m.eventTicks > 0 ? m.eventBias : 0;
-      const move = t.drift + random + meanRevert + event;
+      const rawMove = t.drift + random + meanRevert + event;
+      // 한 번의 가격 갱신에서 상한가/하한가를 넘지 않도록 제한한다.
+      const move = Math.max(-MAX_TICK_CHANGE, Math.min(MAX_TICK_CHANGE, rawMove));
       m.price = Math.max(300, Math.round(m.price * (1 + move)));
       if (m.eventTicks > 0) {
         m.eventTicks--;
@@ -426,6 +516,7 @@
     els.backdrop.classList.remove("hidden");
     els.helpModal.classList.add("hidden");
     els.resultModal.classList.add("hidden");
+    els.portfolioModal.classList.add("hidden");
     modal.classList.remove("hidden");
   }
 
@@ -450,6 +541,8 @@
   });
   document.querySelectorAll("[data-qty]").forEach(btn => btn.addEventListener("click", () => els.qty.value = btn.dataset.qty));
   els.helpBtn.addEventListener("click", () => showModal(els.helpModal));
+  els.portfolioBtn.addEventListener("click", showPortfolio);
+  document.querySelectorAll("[data-close-portfolio]").forEach(btn => btn.addEventListener("click", closePortfolio));
   document.querySelectorAll("[data-close-modal]").forEach(btn => btn.addEventListener("click", closeModal));
   els.restart.addEventListener("click", () => location.reload());
   els.soundBtn.addEventListener("click", () => {
