@@ -1,8 +1,7 @@
 (() => {
   "use strict";
 
-  const GAME_DURATION = 180;
-  const TARGET_WORTH = 300000;
+  const TARGET_WORTH = 1000000;
   const NEWS_INTERVAL = 12;
   const TICK_MS = 2500;
   const MAX_TICK_CHANGE = 0.30; // 1회 변동 상한가 +30%, 하한가 -30%
@@ -11,14 +10,15 @@
     { id: "ramen", name: "우주라면", icon: "🍜", price: 6200, volatility: 0.035, drift: 0.0007, unlock: 0 },
     { id: "cat", name: "냥냥로봇", icon: "🤖", price: 11500, volatility: 0.052, drift: 0.0002, unlock: 0 },
     { id: "battery", name: "번개배터리", icon: "🔋", price: 18800, volatility: 0.068, drift: -0.0001, unlock: 100000 },
-    { id: "moon", name: "달나라코인", icon: "🌙", price: 34500, volatility: 0.095, drift: 0.0004, unlock: 220000 }
+    { id: "moon", name: "달나라코인", icon: "🌙", price: 34500, volatility: 0.095, drift: 0.0004, unlock: 220000 },
+    { id: "bull2x", name: "불장지수 2X", icon: "🚀", price: 52000, volatility: 0.055, drift: 0.0003, unlock: 400000, leverage: 2 }
   ];
 
   const upgrades = [
-    { id: "parttime", icon: "🧹", name: "주말 부업", desc: "초당 150원 자동 수익", baseCost: 3500, growth: 1.62, auto: 150, click: 0 },
-    { id: "office", icon: "🏢", name: "1인 사무실", desc: "초당 650원 자동 수익", baseCost: 15500, growth: 1.72, auto: 650, click: 0 },
-    { id: "franchise", icon: "🏪", name: "무인 프랜차이즈", desc: "초당 2,600원 자동 수익", baseCost: 62000, growth: 1.82, auto: 2600, click: 0 },
-    { id: "espresso", icon: "☕", name: "고농축 에스프레소", desc: "클릭 수익 +120원", baseCost: 4500, growth: 1.55, auto: 0, click: 120 }
+    { id: "parttime", icon: "🧹", name: "주말 부업", desc: "초당 105원 자동 수익", baseCost: 3500, growth: 1.62, auto: 105, click: 0 },
+    { id: "office", icon: "🏢", name: "1인 사무실", desc: "초당 455원 자동 수익", baseCost: 15500, growth: 1.72, auto: 455, click: 0 },
+    { id: "franchise", icon: "🏪", name: "무인 프랜차이즈", desc: "초당 1,820원 자동 수익", baseCost: 62000, growth: 1.82, auto: 1820, click: 0 },
+    { id: "espresso", icon: "☕", name: "고농축 에스프레소", desc: "클릭 수익 +84원", baseCost: 4500, growth: 1.55, auto: 0, click: 84 }
   ];
 
   const newsTemplates = [
@@ -33,16 +33,17 @@
     { tone: "good", title: "개미 연합, 오늘은 무조건 상승 선언", body: "전 종목에 근거 없는 자신감이 퍼집니다.", target: "all", impact: 0.075 },
     { tone: "bad", title: "경제 유튜버 300명 동시에 하락 예측", body: "전 종목이 공포에 흔들립니다.", target: "all", impact: -0.07 },
     { tone: "good", title: "중앙은행, 점심값 지원금 발표", body: "소비 심리 개선으로 시장 전체가 반등합니다.", target: "all", impact: 0.06 },
-    { tone: "bad", title: "서버실 에어컨 고장", body: "거래소가 뜨거워지며 시장 전체가 불안정해집니다.", target: "all", impact: -0.055 }
+    { tone: "bad", title: "서버실 에어컨 고장", body: "거래소가 뜨거워지며 시장 전체가 불안정해집니다.", target: "all", impact: -0.055 },
+    { tone: "good", title: "불장지수 2X, 황소 두 마리 동시 출근", body: "시장 상승 기대가 두 배로 반영되며 레버리지 상품이 급등합니다.", target: "bull2x", impact: 0.16 },
+    { tone: "bad", title: "불장지수 2X, 황소들이 단체 연차", body: "하락 압력도 두 배로 반영되며 레버리지 상품이 크게 흔들립니다.", target: "bull2x", impact: -0.15 }
   ];
 
   const state = {
     cash: 5000,
     selected: "ramen",
     elapsed: 0,
-    timeLeft: GAME_DURATION,
     running: true,
-    clickBase: 100,
+    clickBase: 70,
     clickCount: 0,
     combo: 0,
     comboExpires: 0,
@@ -88,6 +89,16 @@
   function money(n) {
     const abs = Math.round(Math.abs(n)).toLocaleString("ko-KR");
     return `${n < 0 ? "-" : ""}${abs}원`;
+  }
+
+  function formatElapsed(totalSeconds) {
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    if (hours > 0) {
+      return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+    }
+    return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
   }
 
   function totalStockValue() {
@@ -309,13 +320,13 @@
     els.cash.textContent = money(state.cash);
     els.stockValue.textContent = money(stockValue);
     els.netWorth.textContent = money(worth);
-    els.timer.textContent = `${String(Math.floor(state.timeLeft / 60)).padStart(2, "0")}:${String(state.timeLeft % 60).padStart(2, "0")}`;
+    els.timer.textContent = formatElapsed(state.elapsed);
     els.incomeRate.textContent = `초당 ${money(state.autoIncome)}`;
     els.clickIncome.textContent = `클릭당 +${money(clickIncome())}`;
     els.comboText.textContent = `x${clickMultiplier().toFixed(2)}`;
     els.comboBar.style.width = `${Math.min(100, state.combo / 30 * 100)}%`;
 
-    els.tickerName.textContent = `${ticker.icon} ${ticker.name}`;
+    els.tickerName.textContent = `${ticker.icon} ${ticker.name}${ticker.leverage ? ` · ${ticker.leverage}배 레버리지` : ""}`;
     els.tickerPrice.textContent = money(market.price);
     els.tickerChange.textContent = `${change >= 0 ? "+" : ""}${change.toFixed(2)}%`;
     els.tickerChange.className = `price-change ${change >= 0 ? "positive" : "negative"}`;
@@ -334,6 +345,11 @@
     els.clickCount.textContent = `${state.clickCount.toLocaleString()}회`;
     els.newsCount.textContent = `${state.newsCount}건`;
     els.bestWorth.textContent = money(state.bestWorth);
+
+    if (state.running && worth >= TARGET_WORTH) {
+      endGame();
+      return;
+    }
 
     els.buy.disabled = !state.running;
     els.sell.disabled = !state.running || holding.qty <= 0;
@@ -421,8 +437,9 @@
       const random = (Math.random() - .5) * 2 * t.volatility;
       const meanRevert = (m.open - m.price) / m.open * .012;
       const event = m.eventTicks > 0 ? m.eventBias : 0;
-      const rawMove = t.drift + random + meanRevert + event;
-      // 한 번의 가격 갱신에서 상한가/하한가를 넘지 않도록 제한한다.
+      const leverage = t.leverage || 1;
+      const rawMove = (t.drift + random + meanRevert + event) * leverage;
+      // 레버리지 적용 후에도 한 번의 가격 갱신은 상한가/하한가를 넘지 않는다.
       const move = Math.max(-MAX_TICK_CHANGE, Math.min(MAX_TICK_CHANGE, rawMove));
       m.price = Math.max(300, Math.round(m.price * (1 + move)));
       if (m.eventTicks > 0) {
@@ -466,7 +483,7 @@
     state.newsCount++;
     const item = document.createElement("article");
     item.className = `news-item ${news.tone}`;
-    item.innerHTML = `<time>T-${state.timeLeft}초</time><strong>${news.title}</strong><p>${news.body}</p>`;
+    item.innerHTML = `<time>경과 ${formatElapsed(state.elapsed)}</time><strong>${news.title}</strong><p>${news.body}</p>`;
     els.newsFeed.prepend(item);
     while (els.newsFeed.children.length > 8) els.newsFeed.lastElementChild.remove();
     toast(`속보: ${news.title}`);
@@ -475,7 +492,7 @@
 
   function gameSecond() {
     if (!state.running) return;
-    state.timeLeft--;
+    state.elapsed++;
     state.newsTimer--;
 
     if (state.autoIncome > 0) state.cash += state.autoIncome;
@@ -484,35 +501,43 @@
       triggerNews();
       state.newsTimer = NEWS_INTERVAL + Math.floor(Math.random() * 5) - 2;
     }
-    if (state.timeLeft <= 0) endGame();
     renderAll();
   }
 
   function endGame() {
+    if (!state.running) return;
     state.running = false;
-    tickers.forEach(t => {
-      const h = state.holdings[t.id];
-      if (h.qty) {
-        const price = state.market[t.id].price;
-        state.cash += price * h.qty;
-        state.realizedPnl += (price - h.avg) * h.qty;
-        h.qty = 0; h.avg = 0;
-      }
-    });
-    const worth = netWorth();
-    const rank = worth >= 1000000 ? ["전설의 단타왕", "당신의 클릭에 시장이 떨고 있습니다."]
-      : worth >= TARGET_WORTH ? ["미니게임 투자 고수", "목표 자산을 달성했습니다!"]
-      : worth >= 120000 ? ["생존한 개미", "욕심만 조금 줄이면 다음 판은 대박입니다."]
-      : ["시드머니 수련생", "노동과 투자의 균형을 다시 잡아보세요."];
-    els.resultTitle.textContent = rank[0];
-    els.resultWorth.textContent = money(worth);
+
+    const achievedWorth = netWorth();
+    const clearTime = formatElapsed(state.elapsed);
+    let title = "목표 자산 달성!";
+    let comment = "더 빠른 기록에 도전해 보세요.";
+
+    if (state.elapsed <= 120) {
+      title = "초고속 벼락부자";
+      comment = "2분 안에 목표를 달성했습니다!";
+    } else if (state.elapsed <= 240) {
+      title = "단타 마스터";
+      comment = "안정적인 속도로 목표를 달성했습니다.";
+    } else if (state.elapsed <= 480) {
+      title = "끈기의 투자자";
+      comment = "뉴스 장세를 버티고 목표를 달성했습니다.";
+    }
+
+    els.resultTitle.textContent = title;
+    els.resultWorth.textContent = money(achievedWorth);
     els.resultBreakdown.innerHTML = `
-      <div><span>평가</span><strong>${rank[1]}</strong></div>
+      <div><span>목표 금액</span><strong>${money(TARGET_WORTH)}</strong></div>
+      <div><span>달성 시간</span><strong>${clearTime}</strong></div>
+      <div><span>평가</span><strong>${comment}</strong></div>
       <div><span>실현 손익</span><strong class="${state.realizedPnl >= 0 ? "positive" : "negative"}">${money(state.realizedPnl)}</strong></div>
       <div><span>총 클릭 수</span><strong>${state.clickCount.toLocaleString()}회</strong></div>
-      <div><span>처리한 뉴스</span><strong>${state.newsCount}건</strong></div>`;
+      <div><span>발생 뉴스</span><strong>${state.newsCount}건</strong></div>`;
     showModal(els.resultModal);
-    renderAll();
+    renderUpgrades();
+    renderTickers();
+    renderPortfolio();
+    drawChart();
   }
 
   function showModal(modal) {
@@ -531,7 +556,7 @@
 
   function seedNews() {
     els.newsFeed.innerHTML = `
-      <article class="news-item"><time>시장 개장</time><strong>가상 증권 시장이 문을 열었습니다.</strong><p>3분 안에 노동 소득과 단타 매매를 조합해 최대 자산을 달성하세요.</p></article>
+      <article class="news-item"><time>시장 개장</time><strong>가상 증권 시장이 문을 열었습니다.</strong><p>노동 소득과 단타 매매를 조합해 목표 자산에 최대한 빨리 도달하세요.</p></article>
       <article class="news-item good"><time>안내</time><strong>모든 기업과 재화는 가상입니다.</strong><p>실제 투자와 무관한 유머 기반 미니게임입니다.</p></article>`;
   }
 
