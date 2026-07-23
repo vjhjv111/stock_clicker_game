@@ -449,7 +449,10 @@
   }
 
   function triggerNews() {
-    const news = newsTemplates[Math.floor(Math.random() * newsTemplates.length)];
+    const goodNews = newsTemplates.filter(news => news.tone === "good");
+    const badNews = newsTemplates.filter(news => news.tone === "bad");
+    const pool = Math.random() < 0.7 ? goodNews : badNews;
+    const news = pool[Math.floor(Math.random() * pool.length)];
     if (news.target === "all") {
       tickers.forEach(t => {
         state.market[t.id].eventBias += news.impact / 4;
@@ -539,7 +542,10 @@
     const price = state.market[state.selected].price;
     els.qty.value = Math.max(1, Math.floor(state.cash / price));
   });
-  document.querySelectorAll("[data-qty]").forEach(btn => btn.addEventListener("click", () => els.qty.value = btn.dataset.qty));
+  document.querySelectorAll("[data-qty]").forEach(btn => btn.addEventListener("click", () => {
+    const currentQty = Math.max(0, Math.floor(Number(els.qty.value) || 0));
+    els.qty.value = currentQty + Number(btn.dataset.qty);
+  }));
   els.helpBtn.addEventListener("click", () => showModal(els.helpModal));
   els.portfolioBtn.addEventListener("click", showPortfolio);
   document.querySelectorAll("[data-close-portfolio]").forEach(btn => btn.addEventListener("click", closePortfolio));
